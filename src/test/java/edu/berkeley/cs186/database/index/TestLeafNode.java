@@ -153,6 +153,33 @@ public class TestLeafNode {
 
     @Test
     @Category(PublicTests.class)
+    public void testOverflowPuts2() {
+        int d = 2;
+        setBPlusTreeMetadata(Type.intType(), d);
+        LeafNode leaf = getEmptyLeaf(Optional.empty());
+
+        for (int i = 0; i < 2 * d; ++i) {
+            DataBox key = new IntDataBox(i);
+            RecordId rid = new RecordId(i, (short) i);
+
+            // Leaf should never overflow during the first 2d puts
+            assertEquals(Optional.empty(), leaf.put(key, rid));
+        }
+
+//                                               2
+//                                                \
+//        +---------------+       +-------+       +-----------+
+//        | 0 | 1 | 2 | 3 |  >>>  | 0 | 1 | ----> | 2 | 3 | 4 |
+//        +---------------+       +-------+       +-----------+
+        DataBox overflowK = new IntDataBox(4);
+        RecordId overflowRID = new RecordId(4, (short) 4);
+//        Pair<DataBox, Long> copyK = new Pair<>(new IntDataBox(2), );
+        assertEquals(2, leaf.put(overflowK, overflowRID).get().getFirst().getInt());
+//        assertEquals(Optional.empty(), leaf.put(key, rid));
+    }
+
+    @Test
+    @Category(PublicTests.class)
     public void testNoOverflowPutsFromDisk() {
         // Requires both fromBytes and put to be implemented correctly.
         int d = 5;
