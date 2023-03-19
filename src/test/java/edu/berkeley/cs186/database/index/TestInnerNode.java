@@ -204,6 +204,28 @@ public class TestInnerNode {
         assertEquals(innerChildren, inner.getChildren());
     }
 
+    @Test
+    @Category(PublicTests.class)
+    public void testGet1() {
+        LeafNode leaf0 = getLeaf(this.leaf0);
+        assertNotNull(leaf0);
+        System.out.println(leaf0);
+
+        for (int i = 0; i < 3; ++i) {
+            assertEquals(leaf0, leaf0.get(new IntDataBox(i)));
+        }
+//
+//        LeafNode leaf1 = getLeaf(this.leaf1);
+//        for (int i = 10; i < 20; ++i) {
+//            assertEquals(leaf1, inner.get(new IntDataBox(i)));
+//        }
+//
+//        LeafNode leaf2 = getLeaf(this.leaf2);
+//        for (int i = 20; i < 30; ++i) {
+//            assertEquals(leaf2, inner.get(new IntDataBox(i)));
+//        }
+    }
+
     // Tests ///////////////////////////////////////////////////////////////////
     @Test
     @Category(PublicTests.class)
@@ -252,12 +274,15 @@ public class TestInnerNode {
         assertEquals(Optional.empty(), inner.put(key, rid));
         keys1.add(3, key);
         rids1.add(3, rid);
+//        System.out.println(inner.get(new IntDataBox(10)));
         checkTreeMatchesExpectations();
+
 
         // Add to leaf 2.
         key = new IntDataBox(20);
         rid = new RecordId(20, (short) 20);
         assertEquals(Optional.empty(), inner.put(key, rid));
+//        System.out.println(inner.get(new IntDataBox(10)));
         keys2.add(0, key);
         rids2.add(0, rid);
         checkTreeMatchesExpectations();

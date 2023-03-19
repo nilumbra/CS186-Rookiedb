@@ -144,6 +144,8 @@ public class TestBPlusTree {
         String leaf2 = "((7 (7 7)) (8 (8 8)) (9 (9 9)))";
         String leaf3 = "((10 (10 10)) (11 (11 11)))";
         String sexp = String.format("(%s 4 %s 7 %s 10 %s)", leaf0, leaf1, leaf2, leaf3);
+
+//        tree.toDotPDFFile("b+tree.pdf");
         assertEquals(sexp, tree.toSexp());
     }
 
@@ -202,12 +204,12 @@ public class TestBPlusTree {
         l = String.format("(%s 6 %s)", ll, lr);
         r = String.format("(%s 8 %s)", rl, rr);
         assertEquals(String.format("(%s 7 %s)", l, r), tree.toSexp());
-
-        //            (7)
-        //           /   \
-        //     (3 6)       (8)
-        //   /   |   \    /   \
-        // (2) (3 4) (6) (7) (8 9)
+//
+//        //            (7)
+//        //           /   \
+//        //     (3 6)       (8)
+//        //   /   |   \    /   \
+//        // (2) (3 4) (6) (7) (8 9)
         tree.put(new IntDataBox(3), new RecordId(3, (short) 3));
         ll = "((2 (2 2)))";
         String lm = "((3 (3 3)) (4 (4 4)))";
@@ -251,6 +253,12 @@ public class TestBPlusTree {
         m = String.format("(%s 6 %s)", ml, mr);
         r = String.format("(%s 8 %s)", rl, rr);
         assertEquals(String.format("(%s 4 %s 7 %s)", l, m, r), tree.toSexp());
+
+        // adding test to test BPlusTree::scanAll
+        Iterator<RecordId> bpTreeIterator = tree.scanAll();
+        for (int i = 1; bpTreeIterator.hasNext(); i++) {
+            assertEquals(bpTreeIterator.next().compareTo(new RecordId(i, (short) i)) , 0 );
+        }
 
         //            (4 7)
         //           /  |  \

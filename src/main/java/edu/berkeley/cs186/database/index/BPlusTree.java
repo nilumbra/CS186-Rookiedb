@@ -146,6 +146,13 @@ public class BPlusTree {
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
         // TODO(proj2): implement
+        if (root == null) {
+            throw new BPlusTreeException("Cannot get. Root is null!");
+        }
+        LeafNode res = root.get(key);
+        if (res != null) {
+            return res.getKey(key);
+        }
 
         return Optional.empty();
     }
@@ -202,7 +209,9 @@ public class BPlusTree {
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
         // TODO(proj2): Return a BPlusTreeIterator.
-
+        if (root != null) {
+            return new BPlusTreeIterator();
+        }
         return Collections.emptyIterator();
     }
 
@@ -234,9 +243,33 @@ public class BPlusTree {
         // TODO(proj4_integration): Update the following line
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
-        // TODO(proj2): Return a BPlusTreeIterator.
+        if (root != null) {
+            // find the node to start
+            LeafNode iterStartLeaf = root.get(key);
+            return new BPlusTreeIterator(iterStartLeaf, iterStartLeaf.scanGreaterEqual(key));
+        }
 
         return Collections.emptyIterator();
+    }
+
+    /** Assume retPair is not O*/
+    private void handleRootSplit(Optional<Pair<DataBox, Long>> retPair) {
+        if (!retPair.isPresent()) {
+            throw new BPlusTreeException("Error when handling root split. Empty Split key is not allowed.");
+        }
+
+        DataBox splitKey = retPair.get().getFirst();
+        List<DataBox> keys = new ArrayList<>();
+        keys.add(splitKey);
+
+        long pageNumSplit = retPair.get().getSecond();
+        long leftNodePageNum = root.getPage().getPageNum(); // I'm just myself!
+        List<Long> children = new ArrayList<>();
+        children.add(leftNodePageNum);
+        children.add(pageNumSplit);
+
+        InnerNode newRoot = new InnerNode(metadata, bufferManager, keys, children, lockContext);
+        updateRoot(newRoot);
     }
 
     /**
@@ -257,8 +290,10 @@ public class BPlusTree {
         // Note: You should NOT update the root variable directly.
         // Use the provided updateRoot() helper method to change
         // the tree's root if the old root splits.
-
-        return;
+        Optional<Pair<DataBox, Long>> retPair = root.put(key, rid);
+        if (retPair.isPresent()) { // the old root splits
+            handleRootSplit(retPair);
+        }
     }
 
     /**
@@ -282,12 +317,20 @@ public class BPlusTree {
         // TODO(proj4_integration): Update the following line
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
-        // TODO(proj2): implement
         // Note: You should NOT update the root variable directly.
         // Use the provided updateRoot() helper method to change
         // the tree's root if the old root splits.
 
-        return;
+        // Notice in bulkLoad, whenever a split happens, it must be the root node that splits.
+        // Normal inner nodes simply don't split
+
+        while(data.hasNext()) {
+            // Whenever InnerNode::bulkLoad returns, it must be that there's a split
+            Optional<Pair<DataBox, Long>> retPair = root.bulkLoad(data, fillFactor);
+            if (retPair.isPresent()) {
+                handleRootSplit(retPair);
+            }
+        }
     }
 
     /**
@@ -307,8 +350,7 @@ public class BPlusTree {
         LockUtil.ensureSufficientLockHeld(lockContext, LockType.NL);
 
         // TODO(proj2): implement
-
-        return;
+        root.remove(key);
     }
 
     // Helpers /////////////////////////////////////////////////////////////////
@@ -420,18 +462,56 @@ public class BPlusTree {
 
     // Iterator ////////////////////////////////////////////////////////////////
     private class BPlusTreeIterator implements Iterator<RecordId> {
-        // TODO(proj2): Add whatever fields and constructors you want here.
+        LeafNode currLeaf = null;
+        boolean hasNextRIDOnLeaf;
+        Iterator<RecordId> currLeafIterator;
+        BPlusTreeIterator () {
+            if (root != null) {
+                // Start from leftMost tree
+                // Initialize leftMost tree with currLeaf
+                currLeaf = root.getLeftmostLeaf();
+                currLeafIterator = currLeaf.scanAll();
+            }
+        }
 
+        /** Different than the default constructor which initializes an iterator
+         * starting from the left most record in the tree, this constructor allows customization
+         * s.t. the caller can explicitly specify the starting position of iteration by passing
+         * a LeafNode and LeafNode iterator
+         */
+        BPlusTreeIterator (LeafNode leaf, Iterator<RecordId> leafIterator) {
+            currLeaf = leaf;
+            currLeafIterator = leafIterator;
+        }
         @Override
         public boolean hasNext() {
-            // TODO(proj2): implement
+            if (currLeafIterator == null) {
+                return false;
+            }
 
-            return false;
+            // check if currLeaf has been iterated thoroughly
+            hasNextRIDOnLeaf = currLeafIterator.hasNext();
+
+            // ... if true, simply return true
+            //  Otherwise, check if currLeaf has a right sibling
+            //    if true, return true and the next call to next() will load the next sibling
+            //  Otherwise the B+-plus has been iterated thoroughly, return false
+            return hasNextRIDOnLeaf || currLeaf.hasRightSibling();
         }
 
         @Override
         public RecordId next() {
-            // TODO(proj2): implement
+            if (hasNext()) {
+                // same leaf node has next
+                if (hasNextRIDOnLeaf) {
+                    return currLeafIterator.next();
+                }
+
+                // currLeaf exhausted, load its right sibling
+                currLeaf = currLeaf.getRightSibling().get();
+                currLeafIterator = currLeaf.scanAll();
+                return currLeafIterator.next();
+            }
 
             throw new NoSuchElementException();
         }
