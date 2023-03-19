@@ -19,7 +19,7 @@ My implementation for each project is in the corresponding branch as follows (yo
 | **Assignment**                                                                                | **Branch name** |
 |-----------------------------------------------------------------------------------------------|---------------------|
 | Skeleton code                                                | Master          |
-| [Project 2: B+ Trees](https://cs186.gitbook.io/project/assignments/proj2)                     | b_plus_tree |
+| [Project 2: B+ Trees](https://cs186.gitbook.io/project/assignments/proj2)                     | b+-tree |
 | [Project 3: Joins and Query Optimization](https://cs186.gitbook.io/project/assignments/proj3) | join_query_opt |
 | [Project 4: Concurrency](https://cs186.gitbook.io/project/assignments/proj4)                  | concurrency |
 | [Project 5: Recovery](https://cs186.gitbook.io/project/assignments/proj5)                     | recovery |
